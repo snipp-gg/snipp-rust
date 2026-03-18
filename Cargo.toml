@@ -1,5 +1,5 @@
 [package]
-name = "snipp-rust"
+name = "snipp"
 version = "0.1.0"
 edition = "2024"
 description = "Rust API wrapper for Snipp (https://api.snipp.gg)"
