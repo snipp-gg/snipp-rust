@@ -1,36 +1,40 @@
 # snipp-rust
 
-Rust API wrapper for [Snipp](https://api.snipp.gg).
+A Rust wrapper for the [Snipp API](https://api.snipp.gg).
 
-## Install
+## Features
+
+- Async/await with Tokio runtime
+- Built on `reqwest` with full type safety
+- Rich error handling with `SnippError`
+
+## Requirements
+
+- Rust (latest stable)
+- A valid API key from the [Snipp Console](https://snipp.gg/settings/console)
+
+## Installation
 
 Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-snipp-rust = { path = "../snipp-rust" }
+snipp = "0.1"
 tokio = { version = "1", features = ["full"] }
 ```
 
-## Usage
+## Quick Start
 
 ```rust
-use snipp_rust::{SnippClient, GetUserOptions, Privacy};
+use snipp::{SnippClient, GetUserOptions, Privacy};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = SnippClient::new("snp_your_api_key");
+    let client = SnippClient::new("YOUR_API_KEY");
 
     // Get the authenticated user
     let me = client.get_user("@me", None).await?;
     println!("{}", me.user.username.unwrap_or_default());
-
-    // Get a user with posts included
-    let opts = GetUserOptions {
-        include_posts: Some(true),
-        posts_limit: Some(10),
-    };
-    let user = client.get_user("some-user-id", Some(opts)).await?;
 
     // Upload a file
     let upload = client.upload("./screenshot.png", Some(Privacy::Unlisted)).await?;
@@ -49,26 +53,62 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-## API Reference
+## API
 
 All methods are async and return `Result<T, SnippError>`.
 
-| Method | Description |
-|---|---|
-| `get_user(id, options)` | Get a user by ID (`"@me"` for self). Options: `include_posts`, `posts_limit` (1-50). |
-| `upload(path, privacy)` | Upload a file. Privacy: `Public`, `Unlisted`, or `Private`. |
-| `list_uploads()` | List the authenticated user's recent uploads. |
-| `delete_upload(filename)` | Delete an upload by filename. |
-| `discover()` | Browse publicly shared uploads. |
+### `SnippClient::new(api_key)`
 
-### Authentication
+Create a client. The key is sent via the `api-key` header on every request.
 
-All requests require an API key passed to `SnippClient::new()`. Keys start with `snp_` and are sent via the `api-key` header.
+### `get_user(id, options)`
 
-### Error Handling
+Get a user by ID. Pass `"@me"` for the authenticated user.
+
+| Option | Type | Description |
+|---|---|---|
+| `include_posts` | `Option<bool>` | Include the user's public uploads. |
+| `posts_limit` | `Option<u32>` | Number of posts to return (1-50). |
+
+```rust
+let opts = GetUserOptions {
+    include_posts: Some(true),
+    posts_limit: Some(10),
+};
+let user = client.get_user("some-user-id", Some(opts)).await?;
+```
+
+### `upload(path, privacy)`
+
+Upload a file from a path. Privacy: `Public`, `Unlisted`, or `Private`.
+
+```rust
+let result = client.upload("./image.png", Some(Privacy::Unlisted)).await?;
+```
+
+### `list_uploads()`
+
+List the authenticated user's recent uploads.
+
+### `delete_upload(filename)`
+
+Delete an upload by its filename.
+
+### `discover()`
+
+Browse public uploads.
+
+## Error Handling
 
 `SnippError` covers HTTP errors, API errors (non-2xx responses), deserialization failures, and IO errors during file uploads.
 
+## Contributing
+
+We welcome suggestions and improvements:
+
+- Open an issue
+- Submit a pull request that adheres to our [Terms of Service](https://snipp.gg/terms) and [Privacy Policy](https://snipp.gg/privacy)
+
 ## License
 
-MIT
+MIT License © 2026 Snipp. See [LICENSE](LICENSE) for full details.
