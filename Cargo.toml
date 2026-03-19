@@ -2,8 +2,11 @@
 name = "snipp"
 version = "0.1.0"
 edition = "2024"
-description = "Rust API wrapper for Snipp (https://api.snipp.gg)"
+description = "Rust API wrapper for Snipp"
 license = "MIT"
+keywords = ["clips", "upload", "snipp", "images", "share", "api"]
+homepage = "https://docs.snipp.gg/sdks/rust"
+repository = "https://github.com/snipp-gg/snipp-rust"
 
 [dependencies]
 reqwest = { version = "0.12", features = ["multipart", "json"] }
