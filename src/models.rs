@@ -4,11 +4,6 @@ use std::str::FromStr;
 
 use crate::error::ParsePrivacyError;
 
-// ---------------------------------------------------------------------------
-// Privacy
-// ---------------------------------------------------------------------------
-
-/// Upload privacy level.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Privacy {
@@ -41,11 +36,6 @@ impl FromStr for Privacy {
     }
 }
 
-// ---------------------------------------------------------------------------
-// User
-// ---------------------------------------------------------------------------
-
-/// A badge displayed on a user's profile.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Badge {
     pub name: Option<String>,
@@ -53,7 +43,6 @@ pub struct Badge {
     pub color: Option<String>,
 }
 
-/// A Snipp user.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
@@ -69,17 +58,11 @@ pub struct User {
     pub posts: Option<Vec<Post>>,
 }
 
-/// Response wrapper for user endpoints.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserResponse {
     pub user: User,
 }
 
-// ---------------------------------------------------------------------------
-// Posts / Uploads
-// ---------------------------------------------------------------------------
-
-/// A post (code snippet) on Snipp.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Post {
@@ -88,7 +71,6 @@ pub struct Post {
     pub post_privacy: Option<String>,
 }
 
-/// Response returned after uploading a file.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UploadResponse {
     pub message: Option<String>,
@@ -96,7 +78,6 @@ pub struct UploadResponse {
     pub post: Option<Post>,
 }
 
-/// A single upload entry.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Upload {
     pub url: Option<String>,
@@ -104,17 +85,11 @@ pub struct Upload {
     pub uploaded: Option<String>,
 }
 
-/// Response wrapper for listing uploads.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UploadsResponse {
     pub uploads: Vec<Upload>,
 }
 
-// ---------------------------------------------------------------------------
-// Discover
-// ---------------------------------------------------------------------------
-
-/// A publicly discoverable upload.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DiscoverUpload {
@@ -130,21 +105,13 @@ pub struct DiscoverUpload {
     pub mime_type: Option<String>,
 }
 
-/// Response wrapper for the discover endpoint.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiscoverResponse {
     pub uploads: Vec<DiscoverUpload>,
 }
 
-// ---------------------------------------------------------------------------
-// Request helpers
-// ---------------------------------------------------------------------------
-
-/// Options for the get-user endpoint.
 #[derive(Debug, Clone, Default)]
 pub struct GetUserOptions {
-    /// Include the user's posts in the response.
     pub include_posts: Option<bool>,
-    /// Maximum number of posts to return (1-50).
     pub posts_limit: Option<u32>,
 }

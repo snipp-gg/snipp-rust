@@ -6,7 +6,6 @@ use crate::models::*;
 
 const BASE_URL: &str = "https://api.snipp.gg";
 
-/// Async client for the Snipp API.
 #[derive(Debug, Clone)]
 pub struct SnippClient {
     api_key: String,
@@ -14,7 +13,6 @@ pub struct SnippClient {
 }
 
 impl SnippClient {
-    /// Create a new client with the given API key (keys start with `snp_`).
     pub fn new(api_key: impl Into<String>) -> Self {
         Self {
             api_key: api_key.into(),
@@ -22,11 +20,6 @@ impl SnippClient {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Users
-    // ------------------------------------------------------------------
-
-    /// Fetch a user by ID. Pass `"@me"` to get the authenticated user.
     pub async fn get_user(
         &self,
         id: &str,
@@ -52,15 +45,6 @@ impl SnippClient {
         Self::handle_response(resp).await
     }
 
-    // ------------------------------------------------------------------
-    // Uploads
-    // ------------------------------------------------------------------
-
-    /// Upload a file.
-    ///
-    /// `file_path` is the local path to the file.
-    /// `privacy` sets the post visibility (defaults to the API's own default
-    /// when `None`).
     pub async fn upload(
         &self,
         file_path: impl AsRef<Path>,
@@ -91,7 +75,6 @@ impl SnippClient {
         Self::handle_response(resp).await
     }
 
-    /// List the authenticated user's recent uploads.
     pub async fn list_uploads(&self) -> Result<UploadsResponse, SnippError> {
         let resp = self
             .http
@@ -103,7 +86,6 @@ impl SnippClient {
         Self::handle_response(resp).await
     }
 
-    /// Delete an upload by filename.
     pub async fn delete_upload(&self, filename: &str) -> Result<serde_json::Value, SnippError> {
         let resp = self
             .http
@@ -116,11 +98,6 @@ impl SnippClient {
         Self::handle_response(resp).await
     }
 
-    // ------------------------------------------------------------------
-    // Discover
-    // ------------------------------------------------------------------
-
-    /// Browse publicly shared uploads.
     pub async fn discover(&self) -> Result<DiscoverResponse, SnippError> {
         let resp = self
             .http
@@ -131,10 +108,6 @@ impl SnippClient {
 
         Self::handle_response(resp).await
     }
-
-    // ------------------------------------------------------------------
-    // Helpers
-    // ------------------------------------------------------------------
 
     async fn handle_response<T: serde::de::DeserializeOwned>(
         resp: reqwest::Response,
