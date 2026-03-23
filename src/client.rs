@@ -45,6 +45,17 @@ impl SnippClient {
         Self::handle_response(resp).await
     }
 
+    pub async fn get_post(&self, code: &str) -> Result<GetPostResponse, SnippError> {
+        let resp = self
+            .http
+            .get(format!("{BASE_URL}/posts/{code}"))
+            .header("api-key", &self.api_key)
+            .send()
+            .await?;
+
+        Self::handle_response(resp).await
+    }
+
     pub async fn upload(
         &self,
         file_path: impl AsRef<Path>,
@@ -83,6 +94,31 @@ impl SnippClient {
             .send()
             .await?;
 
+        Self::handle_response(resp).await
+    }
+
+    pub async fn edit_upload(
+        &self,
+        code: &str,
+        options: EditUploadOptions,
+    ) -> Result<EditUploadResponse, SnippError> {
+        let mut req = self
+            .http
+            .patch(format!("{BASE_URL}/editUpload"))
+            .header("api-key", &self.api_key)
+            .header("code", code);
+
+        if let Some(title) = &options.title {
+            req = req.header("title", title.as_str());
+        }
+        if let Some(description) = &options.description {
+            req = req.header("description", description.as_str());
+        }
+        if let Some(privacy) = &options.privacy {
+            req = req.header("postprivacy", privacy.to_string());
+        }
+
+        let resp = req.send().await?;
         Self::handle_response(resp).await
     }
 

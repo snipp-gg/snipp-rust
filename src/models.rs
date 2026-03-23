@@ -72,6 +72,22 @@ pub struct Post {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetPostDetail {
+    pub code: Option<String>,
+    pub url: Option<String>,
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub post_privacy: Option<String>,
+    pub created: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GetPostResponse {
+    pub post: GetPostDetail,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UploadResponse {
     pub message: Option<String>,
     pub url: Option<String>,
@@ -114,4 +130,27 @@ pub struct DiscoverResponse {
 pub struct GetUserOptions {
     pub include_posts: Option<bool>,
     pub posts_limit: Option<u32>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct EditUploadOptions {
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub privacy: Option<Privacy>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EditUploadResponse {
+    pub message: Option<String>,
+    pub post: Option<EditedPost>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EditedPost {
+    pub code: Option<String>,
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub post_privacy: Option<String>,
 }
