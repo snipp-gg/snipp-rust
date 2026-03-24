@@ -154,3 +154,38 @@ pub struct EditedPost {
     pub description: Option<String>,
     pub post_privacy: Option<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Block {
+    pub user_id: String,
+    pub created: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BlocksResponse {
+    pub blocks: Vec<Block>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BlockResponse {
+    pub blocked: bool,
+    pub message: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BlockRequest {
+    pub target_id: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ReportRequest {
+    pub code: String,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReportResponse {
+    pub success: bool,
+}
