@@ -165,7 +165,7 @@ impl SnippClient {
 
         let resp = self
             .http
-            .post(format!("{BASE_URL}/blocks"))
+            .post(format!("{BASE_URL}/block"))
             .header("api-key", &self.api_key)
             .json(&body)
             .send()
@@ -182,7 +182,7 @@ impl SnippClient {
 
         let resp = self
             .http
-            .delete(format!("{BASE_URL}/blocks"))
+            .post(format!("{BASE_URL}/unblock"))
             .header("api-key", &self.api_key)
             .json(&body)
             .send()
