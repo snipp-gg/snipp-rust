@@ -80,6 +80,8 @@ pub struct GetPostDetail {
     pub description: Option<String>,
     pub post_privacy: Option<String>,
     pub created: Option<String>,
+    pub file: Option<FileInfo>,
+    pub moderated: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,9 +90,25 @@ pub struct GetPostResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Dimensions {
+    pub width: u32,
+    pub height: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileInfo {
+    pub size: Option<u64>,
+    pub size_formatted: Option<String>,
+    pub mime_type: Option<String>,
+    pub dimensions: Option<Dimensions>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UploadResponse {
     pub message: Option<String>,
     pub url: Option<String>,
+    pub file: Option<FileInfo>,
+    pub processing_time: Option<u64>,
     pub post: Option<Post>,
 }
 
@@ -98,6 +116,7 @@ pub struct UploadResponse {
 pub struct Upload {
     pub url: Option<String>,
     pub size: Option<u64>,
+    pub size_formatted: Option<String>,
     pub uploaded: Option<String>,
 }
 
