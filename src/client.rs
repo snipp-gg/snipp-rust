@@ -79,7 +79,7 @@ impl SnippClient {
             .multipart(form);
 
         if let Some(p) = privacy {
-            req = req.header("postprivacy", p.to_string());
+            req = req.header("post-privacy", p.to_string());
         }
 
         let resp = req.send().await?;
@@ -115,7 +115,7 @@ impl SnippClient {
             req = req.header("description", description.as_str());
         }
         if let Some(privacy) = &options.privacy {
-            req = req.header("postprivacy", privacy.to_string());
+            req = req.header("post-privacy", privacy.to_string());
         }
 
         let resp = req.send().await?;
