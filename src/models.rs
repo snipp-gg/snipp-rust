@@ -76,8 +76,10 @@ pub struct Post {
 pub struct GetPostDetail {
     pub code: Option<String>,
     pub url: Option<String>,
+    pub urls: Option<Vec<String>>,
     pub title: Option<String>,
     pub description: Option<String>,
+    pub is_album: Option<bool>,
     pub post_privacy: Option<String>,
     pub created: Option<String>,
     pub file: Option<FileInfo>,
@@ -114,6 +116,9 @@ pub struct UploadResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Upload {
+    pub code: Option<String>,
+    #[serde(rename = "isAlbum")]
+    pub is_album: Option<bool>,
     pub url: Option<String>,
     pub size: Option<u64>,
     pub size_formatted: Option<String>,

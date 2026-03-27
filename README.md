@@ -88,7 +88,7 @@ let result = client.upload("./image.png", Some(Privacy::Unlisted)).await?;
 
 ### `list_uploads()`
 
-List the authenticated user's recent uploads.
+List the authenticated user's recent uploads. Each upload entry includes the file URL, size metadata, optional post `code`, and `is_album` when the upload belongs to an album post.
 
 ### `delete_upload(filename)`
 
