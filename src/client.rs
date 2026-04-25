@@ -122,6 +122,49 @@ impl SnippClient {
         Self::handle_response(resp).await
     }
 
+    pub async fn append_upload<P: AsRef<Path>>(
+        &self,
+        code: &str,
+        file_paths: &[P],
+    ) -> Result<AppendUploadResponse, SnippError> {
+        if code.is_empty() {
+            return Err(SnippError::Api {
+                status: 400,
+                message: "code is required".to_string(),
+            });
+        }
+        if file_paths.is_empty() {
+            return Err(SnippError::Api {
+                status: 400,
+                message: "file_paths must not be empty".to_string(),
+            });
+        }
+
+        let mut form = multipart::Form::new();
+        for path in file_paths {
+            let path = path.as_ref();
+            let file_name = path
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+            let bytes = tokio::fs::read(path).await?;
+            let part = multipart::Part::bytes(bytes).file_name(file_name);
+            form = form.part("file", part);
+        }
+
+        let resp = self
+            .http
+            .post(format!("{BASE_URL}/appendUpload"))
+            .header("api-key", &self.api_key)
+            .header("post-code", code)
+            .multipart(form)
+            .send()
+            .await?;
+
+        Self::handle_response(resp).await
+    }
+
     pub async fn delete_upload(&self, filename: &str) -> Result<serde_json::Value, SnippError> {
         let resp = self
             .http

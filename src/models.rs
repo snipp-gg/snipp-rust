@@ -181,6 +181,45 @@ pub struct EditedPost {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct AppendedFile {
+    pub index: Option<u32>,
+    pub file_name: Option<String>,
+    pub url: Option<String>,
+    pub size: Option<u64>,
+    pub size_formatted: Option<String>,
+    pub mime_type: Option<String>,
+    pub status: Option<String>,
+    pub dimensions: Option<Dimensions>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FailedFile {
+    pub index: Option<u32>,
+    pub error: Option<String>,
+    pub status: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppendedPost {
+    pub code: Option<String>,
+    pub url: Option<String>,
+    pub post_privacy: Option<String>,
+    pub file_count: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppendUploadResponse {
+    pub message: Option<String>,
+    pub post: Option<AppendedPost>,
+    pub files: Option<Vec<AppendedFile>>,
+    pub failed: Option<Vec<FailedFile>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Block {
     pub user_id: String,
     pub created: Option<String>,
