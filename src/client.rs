@@ -59,7 +59,7 @@ impl SnippClient {
     pub async fn upload(
         &self,
         file_path: impl AsRef<Path>,
-        privacy: Option<Privacy>,
+        options: Option<UploadOptions>,
     ) -> Result<UploadResponse, SnippError> {
         let path = file_path.as_ref();
         let file_name = path
@@ -78,8 +78,19 @@ impl SnippClient {
             .header("api-key", &self.api_key)
             .multipart(form);
 
-        if let Some(p) = privacy {
-            req = req.header("post-privacy", p.to_string());
+        if let Some(opts) = options {
+            if let Some(p) = opts.privacy {
+                req = req.header("post-privacy", p.to_string());
+            }
+            if let Some(t) = &opts.title {
+                req = req.header("post-title", t.as_str());
+            }
+            if let Some(d) = &opts.description {
+                req = req.header("post-description", d.as_str());
+            }
+            if let Some(pt) = opts.post_type {
+                req = req.header("post-type", pt.to_string());
+            }
         }
 
         let resp = req.send().await?;
@@ -256,7 +267,16 @@ impl SnippClient {
     ) -> Result<T, SnippError> {
         let status = resp.status();
         if !status.is_success() {
-            let message = resp.text().await.unwrap_or_default();
+            let raw = resp.text().await.unwrap_or_default();
+            let message = serde_json::from_str::<serde_json::Value>(&raw)
+                .ok()
+                .and_then(|v| {
+                    v.get("error")
+                        .or_else(|| v.get("message"))
+                        .and_then(|s| s.as_str())
+                        .map(|s| s.to_string())
+                })
+                .unwrap_or(raw);
             return Err(SnippError::Api {
                 status: status.as_u16(),
                 message,

@@ -48,14 +48,38 @@ pub struct Badge {
 pub struct User {
     pub id: Option<String>,
     pub username: Option<String>,
-    pub display_name: Option<String>,
+    pub nickname: Option<String>,
     pub avatar: Option<String>,
     pub banner: Option<String>,
     pub bio: Option<String>,
+    pub socials: Option<serde_json::Value>,
+    pub key: Option<String>,
+    pub key_has_uploads_access: Option<bool>,
+    pub plus: Option<bool>,
+    pub enterprise: Option<bool>,
     pub verified: Option<bool>,
+    pub staff: Option<bool>,
+    pub partner: Option<bool>,
+    pub translator: Option<bool>,
+    pub bug_hunter_tier: Option<u32>,
+    pub suspended: Option<bool>,
     pub created: Option<String>,
+    pub embed_settings: Option<serde_json::Value>,
     pub badges: Option<Vec<Badge>>,
-    pub posts: Option<Vec<Post>>,
+    pub uploads: Option<u32>,
+    pub public_uploads: Option<Vec<PublicUpload>>,
+    pub blocked_by_you: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PublicUpload {
+    pub code: Option<String>,
+    pub url: Option<String>,
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub created: Option<String>,
+    pub is_album: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -154,6 +178,30 @@ pub struct DiscoverResponse {
 pub struct GetUserOptions {
     pub include_posts: Option<bool>,
     pub posts_limit: Option<u32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PostType {
+    Album,
+    Individual,
+}
+
+impl fmt::Display for PostType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            PostType::Album => "album",
+            PostType::Individual => "individual",
+        };
+        f.write_str(s)
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct UploadOptions {
+    pub privacy: Option<Privacy>,
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub post_type: Option<PostType>,
 }
 
 #[derive(Debug, Clone, Default)]
