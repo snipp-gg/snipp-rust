@@ -188,63 +188,6 @@ impl SnippClient {
         Self::handle_response(resp).await
     }
 
-    pub async fn discover(&self) -> Result<DiscoverResponse, SnippError> {
-        let resp = self
-            .http
-            .get(format!("{BASE_URL}/discover"))
-            .header("api-key", &self.api_key)
-            .send()
-            .await?;
-
-        Self::handle_response(resp).await
-    }
-
-    /// List blocked users.
-    pub async fn list_blocks(&self) -> Result<BlocksResponse, SnippError> {
-        let resp = self
-            .http
-            .get(format!("{BASE_URL}/blocks"))
-            .header("api-key", &self.api_key)
-            .send()
-            .await?;
-
-        Self::handle_response(resp).await
-    }
-
-    /// Block a user by their ID.
-    pub async fn block_user(&self, target_id: &str) -> Result<BlockResponse, SnippError> {
-        let body = BlockRequest {
-            target_id: target_id.to_string(),
-        };
-
-        let resp = self
-            .http
-            .post(format!("{BASE_URL}/block"))
-            .header("api-key", &self.api_key)
-            .json(&body)
-            .send()
-            .await?;
-
-        Self::handle_response(resp).await
-    }
-
-    /// Unblock a user by their ID.
-    pub async fn unblock_user(&self, target_id: &str) -> Result<BlockResponse, SnippError> {
-        let body = BlockRequest {
-            target_id: target_id.to_string(),
-        };
-
-        let resp = self
-            .http
-            .post(format!("{BASE_URL}/unblock"))
-            .header("api-key", &self.api_key)
-            .json(&body)
-            .send()
-            .await?;
-
-        Self::handle_response(resp).await
-    }
-
     pub async fn report_post(&self, code: &str, reason: &str) -> Result<ReportResponse, SnippError> {
         let body = ReportRequest {
             code: code.to_string(),

@@ -154,26 +154,6 @@ pub struct UploadsResponse {
     pub uploads: Vec<Upload>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DiscoverUpload {
-    pub url: Option<String>,
-    pub code: Option<String>,
-    pub title: Option<String>,
-    pub description: Option<String>,
-    pub created: Option<String>,
-    pub author: Option<String>,
-    pub author_avatar: Option<String>,
-    pub author_id: Option<String>,
-    pub size: Option<u64>,
-    pub mime_type: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DiscoverResponse {
-    pub uploads: Vec<DiscoverUpload>,
-}
-
 #[derive(Debug, Clone, Default)]
 pub struct GetUserOptions {
     pub include_posts: Option<bool>,
@@ -264,30 +244,6 @@ pub struct AppendUploadResponse {
     pub post: Option<AppendedPost>,
     pub files: Option<Vec<AppendedFile>>,
     pub failed: Option<Vec<FailedFile>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Block {
-    pub user_id: String,
-    pub created: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BlocksResponse {
-    pub blocks: Vec<Block>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BlockResponse {
-    pub blocked: bool,
-    pub message: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BlockRequest {
-    pub target_id: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
