@@ -97,14 +97,15 @@ impl SnippClient {
         Self::handle_response(resp).await
     }
 
-    pub async fn list_uploads(&self) -> Result<UploadsResponse, SnippError> {
-        let resp = self
+    pub async fn list_uploads(&self, limit: Option<u32>) -> Result<UploadsResponse, SnippError> {
+        let mut req = self
             .http
             .get(format!("{BASE_URL}/uploads"))
-            .header("api-key", &self.api_key)
-            .send()
-            .await?;
-
+            .header("api-key", &self.api_key);
+        if let Some(n) = limit {
+            req = req.query(&[("limit", n.to_string())]);
+        }
+        let resp = req.send().await?;
         Self::handle_response(resp).await
     }
 
