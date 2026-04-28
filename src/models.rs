@@ -64,7 +64,7 @@ pub struct User {
     pub bug_hunter_tier: Option<u32>,
     pub suspended: Option<bool>,
     pub created: Option<String>,
-    pub embed_settings: Option<serde_json::Value>,
+    pub custom_embed: Option<serde_json::Value>,
     pub badges: Option<Vec<Badge>>,
     pub uploads: Option<u32>,
     pub public_uploads: Option<Vec<PublicUpload>>,
