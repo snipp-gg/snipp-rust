@@ -70,28 +70,29 @@ impl SnippClient {
 
         let bytes = tokio::fs::read(path).await?;
         let part = multipart::Part::bytes(bytes).file_name(file_name);
-        let form = multipart::Form::new().part("file", part);
+        let mut form = multipart::Form::new().part("file", part);
 
         let mut req = self
             .http
             .post(format!("{BASE_URL}/upload"))
-            .header("api-key", &self.api_key)
-            .multipart(form);
+            .header("api-key", &self.api_key);
 
         if let Some(opts) = options {
             if let Some(p) = opts.privacy {
                 req = req.header("post-privacy", p.to_string());
             }
             if let Some(t) = &opts.title {
-                req = req.header("post-title", t.as_str());
+                form = form.text("post-title", t.clone());
             }
             if let Some(d) = &opts.description {
-                req = req.header("post-description", d.as_str());
+                form = form.text("post-description", d.clone());
             }
             if let Some(pt) = opts.post_type {
                 req = req.header("post-type", pt.to_string());
             }
         }
+
+        let req = req.multipart(form);
 
         let resp = req.send().await?;
         Self::handle_response(resp).await
