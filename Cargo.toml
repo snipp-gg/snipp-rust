@@ -4,7 +4,7 @@ version = "1.0.2"
 edition = "2024"
 description = "Rust API wrapper for Snipp"
 license = "MIT"
-keywords = ["clips", "upload", "snipp", "images", "share", "api"]
+keywords = ["clips", "upload", "snipp", "images", "share"]
 homepage = "https://docs.snipp.gg/sdks/rust"
 repository = "https://github.com/snipp-gg/snipp-rust"
 
