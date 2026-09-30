@@ -37,14 +37,16 @@ impl FromStr for Privacy {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Badge {
-    pub name: Option<String>,
-    pub icon: Option<String>,
-    pub color: Option<String>,
+pub struct Badges {
+    pub verified: Option<bool>,
+    pub staff: Option<bool>,
+    pub partner: Option<bool>,
+    pub bug_hunter_tier: Option<u32>,
+    pub translator: Option<bool>,
+    pub plus: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: Option<String>,
     pub username: Option<String>,
@@ -53,10 +55,11 @@ pub struct User {
     pub banner: Option<String>,
     pub bio: Option<String>,
     pub socials: Option<serde_json::Value>,
-    pub key: Option<String>,
+    pub api_key: Option<String>,
+    pub limits: Option<serde_json::Value>,
     pub key_has_uploads_access: Option<bool>,
     pub plus: Option<bool>,
-    pub enterprise: Option<bool>,
+    pub ultra: Option<bool>,
     pub verified: Option<bool>,
     pub staff: Option<bool>,
     pub partner: Option<bool>,
@@ -65,14 +68,13 @@ pub struct User {
     pub suspended: Option<bool>,
     pub created: Option<String>,
     pub custom_embed: Option<serde_json::Value>,
-    pub badges: Option<Vec<Badge>>,
+    pub badges: Option<Badges>,
     pub uploads: Option<u32>,
     pub public_uploads: Option<Vec<PublicUpload>>,
     pub blocked_by_you: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct PublicUpload {
     pub code: Option<String>,
     pub url: Option<String>,
@@ -88,15 +90,18 @@ pub struct UserResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Post {
     pub code: Option<String>,
     pub url: Option<String>,
     pub post_privacy: Option<String>,
+    pub priority: Option<bool>,
+    /// Present on album posts.
+    pub is_album: Option<bool>,
+    /// Present on album posts.
+    pub file_count: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct GetPostDetail {
     pub code: Option<String>,
     pub url: Option<String>,
@@ -104,10 +109,32 @@ pub struct GetPostDetail {
     pub title: Option<String>,
     pub description: Option<String>,
     pub is_album: Option<bool>,
+    pub files: Option<Vec<PostFile>>,
+    pub thumbnail_url: Option<String>,
     pub post_privacy: Option<String>,
     pub created: Option<String>,
+    pub views: Option<u64>,
+    /// Total likes. Absent on team posts, which cannot be liked.
+    pub like_count: Option<u64>,
+    pub comment_count: Option<u64>,
+    pub priority: Option<bool>,
     pub file: Option<FileInfo>,
+    /// Only present for the owner when the post was moderated.
     pub moderated: Option<bool>,
+    /// Only present for the owner when the post was restricted.
+    pub restricted: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PostFile {
+    pub index: Option<u32>,
+    pub file_name: Option<String>,
+    pub url: Option<String>,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    pub mime_type: Option<String>,
+    pub size: Option<u64>,
+    pub size_formatted: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -141,12 +168,14 @@ pub struct UploadResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Upload {
     pub code: Option<String>,
-    #[serde(rename = "isAlbum")]
     pub is_album: Option<bool>,
     pub url: Option<String>,
+    pub thumbnail_url: Option<String>,
+    pub title: Option<String>,
     pub size: Option<u64>,
     pub size_formatted: Option<String>,
     pub uploaded: Option<String>,
+    pub priority: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -181,6 +210,8 @@ pub struct UploadOptions {
     pub privacy: Option<Privacy>,
     pub title: Option<String>,
     pub description: Option<String>,
+    /// Sent as the `post-type` header. Has no effect through `upload()`, which
+    /// sends a single file; use `append_upload` to build an album.
     pub post_type: Option<PostType>,
 }
 
@@ -192,14 +223,12 @@ pub struct EditUploadOptions {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct EditUploadResponse {
     pub message: Option<String>,
     pub post: Option<EditedPost>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct EditedPost {
     pub code: Option<String>,
     pub title: Option<String>,
@@ -208,7 +237,6 @@ pub struct EditedPost {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct AppendedFile {
     pub index: Option<u32>,
     pub file_name: Option<String>,
@@ -221,7 +249,6 @@ pub struct AppendedFile {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct FailedFile {
     pub index: Option<u32>,
     pub error: Option<String>,
@@ -229,16 +256,15 @@ pub struct FailedFile {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct AppendedPost {
     pub code: Option<String>,
     pub url: Option<String>,
     pub post_privacy: Option<String>,
     pub file_count: Option<u32>,
+    pub priority: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct AppendUploadResponse {
     pub message: Option<String>,
     pub post: Option<AppendedPost>,
