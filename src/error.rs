@@ -5,13 +5,15 @@ pub enum SnippError {
     #[error("HTTP error: {0}")]
     Http(#[from] reqwest::Error),
 
-    /// A non-2xx response. `body` is the parsed JSON body, or `None` when the
-    /// response was not JSON. It carries fields the API sends alongside
-    /// `error`, such as `suspended` on a suspended user or `moderated` on a
-    /// moderated post.
+    /// A non-2xx response. `kind` is the response's `error.type`, such as
+    /// `not_found` or `quota_exceeded`, and `message` its `error.message`;
+    /// when the response did not carry them, `kind` is `None` and `message`
+    /// is the HTTP status text. `body` is the parsed JSON response body, or
+    /// `None` when the response was not JSON.
     #[error("API error ({status}): {message}")]
     Api {
         status: u16,
+        kind: Option<String>,
         message: String,
         body: Option<serde_json::Value>,
     },

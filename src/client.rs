@@ -1,4 +1,7 @@
-use reqwest::{multipart, Client};
+use reqwest::{multipart, Client, Method, RequestBuilder, Url};
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+use serde_json::Value;
 use std::path::Path;
 
 use crate::error::SnippError;
@@ -7,21 +10,29 @@ use crate::models::*;
 const BASE_URL: &str = "https://api.snipp.gg";
 const REGIONS: [&str; 2] = ["eu-west-1", "us-west-1"];
 
+#[derive(Serialize)]
+struct ReportBody<'a> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reason: Option<&'a str>,
+}
+
+/// Async client for the Snipp API.
 #[derive(Debug, Clone)]
 pub struct SnippClient {
     api_key: String,
-    base_url: String,
+    base_url: Url,
     http: Client,
 }
 
 impl SnippClient {
     /// Create a new client with a Snipp API key.
     ///
-    /// Requests go to `api.snipp.gg`, which routes to the nearest region.
+    /// Requests go to `api.snipp.gg`. Use [`with_region`](Self::with_region)
+    /// to pin a regional endpoint.
     pub fn new(api_key: impl Into<String>) -> Self {
         Self {
             api_key: api_key.into(),
-            base_url: BASE_URL.to_string(),
+            base_url: Url::parse(BASE_URL).expect("valid base URL"),
             http: Client::new(),
         }
     }
@@ -42,145 +53,95 @@ impl SnippClient {
         }
         Ok(Self {
             api_key: api_key.into(),
-            base_url: format!("https://{region}.api.snipp.gg"),
+            base_url: Url::parse(&format!("https://{region}.api.snipp.gg")).expect("valid base URL"),
             http: Client::new(),
         })
     }
 
     /// Get a user by ID. Use `@me` for the authenticated user.
-    pub async fn get_user(
+    ///
+    /// `api_key`, `key_has_uploads_access`, `upload_count` and `limits` are
+    /// only present on yourself.
+    pub async fn get_user(&self, id: &str) -> Result<UserResponse, SnippError> {
+        Self::send(self.request(Method::GET, &["users", id])).await
+    }
+
+    /// List a user's public posts, newest first. Use `@me` for the
+    /// authenticated user. Team, private, unlisted, moderated, and restricted
+    /// posts are never included.
+    pub async fn get_user_posts(
         &self,
         id: &str,
-        options: Option<GetUserOptions>,
-    ) -> Result<UserResponse, SnippError> {
-        let url = format!("{}/users/{id}", self.base_url);
-        let mut req = self.http.get(&url).header("api-key", &self.api_key);
+        options: Option<ListOptions>,
+    ) -> Result<PostList, SnippError> {
+        let req = self.request(Method::GET, &["users", id, "posts"]);
+        Self::send(Self::page(req, options)).await
+    }
 
-        if let Some(opts) = options {
-            let mut params: Vec<(&str, String)> = Vec::new();
-            if let Some(include) = opts.include_posts {
-                params.push(("include_posts", include.to_string()));
-            }
-            if let Some(limit) = opts.posts_limit {
-                params.push(("posts_limit", limit.to_string()));
-            }
-            if !params.is_empty() {
-                req = req.query(&params);
-            }
-        }
-
-        let resp = req.send().await?;
-        Self::handle_response(resp).await
+    /// List the authenticated user's own posts of every privacy, newest
+    /// first. Team posts are not included.
+    pub async fn list_posts(&self, options: Option<ListOptions>) -> Result<PostList, SnippError> {
+        let req = self.request(Method::GET, &["posts"]);
+        Self::send(Self::page(req, options)).await
     }
 
     /// Get a post by its share code. Team posts are only readable by members
-    /// of that team, and carry no `like_count`.
-    pub async fn get_post(&self, code: &str) -> Result<GetPostResponse, SnippError> {
-        let resp = self
-            .http
-            .get(format!("{}/posts/{code}", self.base_url))
-            .header("api-key", &self.api_key)
-            .send()
-            .await?;
-
-        Self::handle_response(resp).await
+    /// of that team.
+    pub async fn get_post(&self, code: &str) -> Result<PostResponse, SnippError> {
+        Self::send(self.request(Method::GET, &["posts", code])).await
     }
 
-    /// Upload a file from disk. Privacy defaults to the server default
-    /// (`private`) when omitted. Titles cap at 30 chars, descriptions at 200.
+    /// Upload a file from disk as a new post. Privacy defaults to the server
+    /// default (`private`) when omitted. Titles cap at 30 chars, descriptions
+    /// at 200.
     pub async fn upload(
         &self,
         file_path: impl AsRef<Path>,
         options: Option<UploadOptions>,
     ) -> Result<UploadResponse, SnippError> {
-        let path = file_path.as_ref();
-        let file_name = path
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string();
-
-        let bytes = tokio::fs::read(path).await?;
-        let part = multipart::Part::bytes(bytes).file_name(file_name);
-        let mut form = multipart::Form::new().part("file", part);
-
-        let mut req = self
-            .http
-            .post(format!("{}/upload", self.base_url))
-            .header("api-key", &self.api_key);
+        let mut form = multipart::Form::new().part("file", Self::file_part(file_path.as_ref()).await?);
+        let mut req = self.request(Method::POST, &["upload"]);
 
         if let Some(opts) = options {
-            if let Some(p) = opts.privacy {
-                req = req.header("post-privacy", p.to_string());
+            req = Self::upload_headers(req, opts.include_metadata, opts.priority);
+            if let Some(privacy) = opts.privacy {
+                req = req.header("post-privacy", privacy.to_string());
             }
-            if let Some(t) = &opts.title {
-                form = form.text("title", t.clone());
+            if let Some(post_type) = opts.post_type {
+                req = req.header("post-type", post_type.to_string());
             }
-            if let Some(d) = &opts.description {
-                form = form.text("description", d.clone());
+            if let Some(title) = opts.title {
+                form = form.text("title", title);
             }
-            if let Some(pt) = opts.post_type {
-                req = req.header("post-type", pt.to_string());
+            if let Some(description) = opts.description {
+                form = form.text("description", description);
             }
         }
 
-        let req = req.multipart(form);
-
-        let resp = req.send().await?;
-        Self::handle_response(resp).await
+        Self::send(req.multipart(form)).await
     }
 
-    /// List the authenticated user's recent uploads (limit 1-1000).
-    pub async fn list_uploads(&self, limit: Option<u32>) -> Result<UploadsResponse, SnippError> {
-        let mut req = self
-            .http
-            .get(format!("{}/uploads", self.base_url))
-            .header("api-key", &self.api_key);
-        if let Some(n) = limit {
-            req = req.query(&[("limit", n.to_string())]);
-        }
-        let resp = req.send().await?;
-        Self::handle_response(resp).await
-    }
-
-    /// Edit an existing upload's title, description, or privacy.
-    /// Empty strings clear the title or description.
-    pub async fn edit_upload(
+    /// Update a post's title, description, or privacy. Only the fields that
+    /// are `Some` are changed; empty strings clear the title or description.
+    /// A team post's privacy cannot be changed.
+    pub async fn update_post(
         &self,
         code: &str,
-        options: EditUploadOptions,
-    ) -> Result<EditUploadResponse, SnippError> {
-        let mut req = self
-            .http
-            .patch(format!("{}/editUpload", self.base_url))
-            .header("api-key", &self.api_key)
-            .header("code", code);
-
-        let mut form = multipart::Form::new();
-        if let Some(title) = &options.title {
-            form = form.text("title", title.clone());
-        }
-        if let Some(description) = &options.description {
-            form = form.text("description", description.clone());
-        }
-        if let Some(privacy) = &options.privacy {
-            req = req.header("post-privacy", privacy.to_string());
-        }
-
-        let resp = req.multipart(form).send().await?;
-        Self::handle_response(resp).await
+        options: UpdatePostOptions,
+    ) -> Result<PostResponse, SnippError> {
+        Self::send(self.request(Method::PATCH, &["posts", code]).json(&options)).await
     }
 
-    /// Append 1 or more files to an existing album post. The post's share
-    /// code, privacy, title, and description are preserved. Albums cap at 50
-    /// files total; requests that would exceed the cap are rejected. New
-    /// files inherit the post's privacy; returned URLs are signed with a
-    /// 24-hour expiry for private posts.
-    pub async fn append_upload<P: AsRef<Path>>(
+    /// Add 1 or more files to an existing post, turning it into an album. The
+    /// post's share code, privacy, title, and description are preserved.
+    /// Posts cap at 50 files total; requests that would exceed the cap are
+    /// rejected. New files inherit the post's privacy.
+    pub async fn add_files<P: AsRef<Path>>(
         &self,
         code: &str,
         file_paths: &[P],
-    ) -> Result<AppendUploadResponse, SnippError> {
+        options: Option<AddFilesOptions>,
+    ) -> Result<AddFilesResponse, SnippError> {
         if code.is_empty() {
             return Err(SnippError::Validation("code is required".to_string()));
         }
@@ -190,85 +151,117 @@ impl SnippClient {
 
         let mut form = multipart::Form::new();
         for path in file_paths {
-            let path = path.as_ref();
-            let file_name = path
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
-            let bytes = tokio::fs::read(path).await?;
-            let part = multipart::Part::bytes(bytes).file_name(file_name);
-            form = form.part("file", part);
+            form = form.part("file", Self::file_part(path.as_ref()).await?);
         }
 
-        let resp = self
-            .http
-            .post(format!("{}/appendUpload", self.base_url))
-            .header("api-key", &self.api_key)
-            .header("post-code", code)
-            .multipart(form)
-            .send()
-            .await?;
-
-        Self::handle_response(resp).await
+        let mut req = self.request(Method::POST, &["posts", code, "files"]);
+        if let Some(opts) = options {
+            req = Self::upload_headers(req, opts.include_metadata, opts.priority);
+        }
+        Self::send(req.multipart(form)).await
     }
 
-    /// Delete an upload by filename.
-    pub async fn delete_upload(&self, filename: &str) -> Result<serde_json::Value, SnippError> {
-        let resp = self
-            .http
-            .delete(format!("{}/deleteUpload", self.base_url))
-            .header("api-key", &self.api_key)
-            .header("file", filename)
-            .send()
-            .await?;
-
-        Self::handle_response(resp).await
+    /// Delete one file from a post by its stored filename, as in
+    /// [`PostFile::name`]. Deleting a post's only file deletes the post.
+    pub async fn delete_file(&self, code: &str, name: &str) -> Result<DeletedFile, SnippError> {
+        Self::send(self.request(Method::DELETE, &["posts", code, "files", name])).await
     }
 
-    /// Report a post. The reason is optional (max 200 chars); pass an empty
-    /// string to omit it.
-    pub async fn report_post(&self, code: &str, reason: &str) -> Result<ReportResponse, SnippError> {
-        let body = ReportRequest {
-            code: code.to_string(),
-            reason: reason.to_string(),
-        };
-
-        let resp = self
-            .http
-            .post(format!("{}/report-post", self.base_url))
-            .header("api-key", &self.api_key)
-            .json(&body)
-            .send()
-            .await?;
-
-        Self::handle_response(resp).await
+    /// Delete a post and every file in it.
+    pub async fn delete_post(&self, code: &str) -> Result<DeletedPost, SnippError> {
+        Self::send(self.request(Method::DELETE, &["posts", code])).await
     }
 
-    async fn handle_response<T: serde::de::DeserializeOwned>(
-        resp: reqwest::Response,
-    ) -> Result<T, SnippError> {
+    /// Report a post to Snipp moderation, with an optional reason (max 200
+    /// chars).
+    pub async fn report_post(
+        &self,
+        code: &str,
+        reason: Option<&str>,
+    ) -> Result<ReportResponse, SnippError> {
+        let req = self.request(Method::POST, &["posts", code, "report"]);
+        Self::send(req.json(&ReportBody { reason })).await
+    }
+
+    /// Report a user to Snipp moderation, with an optional reason (max 200
+    /// chars).
+    pub async fn report_user(
+        &self,
+        id: &str,
+        reason: Option<&str>,
+    ) -> Result<ReportResponse, SnippError> {
+        let req = self.request(Method::POST, &["users", id, "report"]);
+        Self::send(req.json(&ReportBody { reason })).await
+    }
+
+    fn request(&self, method: Method, segments: &[&str]) -> RequestBuilder {
+        let mut url = self.base_url.clone();
+        url.path_segments_mut()
+            .expect("valid base URL")
+            .pop_if_empty()
+            .extend(segments);
+        self.http.request(method, url).header("api-key", &self.api_key)
+    }
+
+    fn upload_headers(
+        mut req: RequestBuilder,
+        include_metadata: Option<bool>,
+        priority: Option<bool>,
+    ) -> RequestBuilder {
+        if let Some(include_metadata) = include_metadata {
+            req = req.header("include-metadata", include_metadata.to_string());
+        }
+        if let Some(priority) = priority {
+            req = req.header("priority", priority.to_string());
+        }
+        req
+    }
+
+    fn page(req: RequestBuilder, options: Option<ListOptions>) -> RequestBuilder {
+        let Some(opts) = options else { return req };
+        let mut params: Vec<(&str, String)> = Vec::new();
+        if let Some(limit) = opts.limit {
+            params.push(("limit", limit.to_string()));
+        }
+        if let Some(cursor) = opts.cursor {
+            params.push(("cursor", cursor));
+        }
+        req.query(&params)
+    }
+
+    async fn file_part(path: &Path) -> Result<multipart::Part, SnippError> {
+        let file_name = path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+        let bytes = tokio::fs::read(path).await?;
+        Ok(multipart::Part::bytes(bytes).file_name(file_name))
+    }
+
+    async fn send<T: DeserializeOwned>(req: RequestBuilder) -> Result<T, SnippError> {
+        let resp = req.send().await?;
         let status = resp.status();
         if !status.is_success() {
             let raw = resp.text().await.unwrap_or_default();
-            let body = serde_json::from_str::<serde_json::Value>(&raw).ok();
-            let message = body
-                .as_ref()
-                .and_then(|v| {
-                    v.get("error")
-                        .or_else(|| v.get("message"))
-                        .and_then(|s| s.as_str())
-                        .map(|s| s.to_string())
-                })
-                .unwrap_or(raw);
+            let body = serde_json::from_str::<Value>(&raw).ok();
+            let error = body.as_ref().and_then(|b| b.get("error"));
+            let field = |key: &str| {
+                error
+                    .and_then(|e| e.get(key))
+                    .and_then(Value::as_str)
+                    .map(str::to_string)
+            };
+            let kind = field("type");
+            let message = field("message")
+                .unwrap_or_else(|| status.canonical_reason().unwrap_or_default().to_string());
             return Err(SnippError::Api {
                 status: status.as_u16(),
+                kind,
                 message,
                 body,
             });
         }
-        let body = resp.text().await?;
-        let parsed = serde_json::from_str(&body)?;
-        Ok(parsed)
+        Ok(serde_json::from_str(&resp.text().await?)?)
     }
 }
